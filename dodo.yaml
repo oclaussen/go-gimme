@@ -1,0 +1,14 @@
+backdrops:
+  make:
+    image:
+      steps: |
+        FROM golang:1.12-alpine
+        RUN apk add -U git make
+        RUN go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+    environment: CGO_ENABLED=0
+    volumes:
+      - "{{ projectRoot }}:/build"
+      - "{{ projectRoot }}/.cache:/go/pkg/mod"
+    working_dir: /build
+    script: make $@
+    command: all
