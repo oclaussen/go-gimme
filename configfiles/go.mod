@@ -1,4 +1,4 @@
-module github.com/oclaussen/go-gimme
+module github.com/oclaussen/go-gimme/configfiles
 
 go 1.12
 

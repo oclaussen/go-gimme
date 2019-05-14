@@ -1,13 +1,5 @@
-all: test lint
+all: configfiles
 
-.PHONY: fmt
-fmt:
-	go fmt ./...
-
-.PHONY: lint
-lint:
-	golangci-lint run --enable-all
-
-.PHONY: test
-test:
-	go test -cover ./...
+.PHONY: configfiles
+configfiles:
+	$(MAKE) -C configfiles
