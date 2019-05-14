@@ -1,9 +1,11 @@
 package configfiles
 
 import (
-	"errors"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type Options struct {
@@ -27,8 +29,8 @@ func (opts *Options) normalize() error {
 		}
 	}
 
-	if len(opts.FileGlobs) == 0 {
-		// TODO: print warning
+	if opts.UseFileGlobsOnly && len(opts.FileGlobs) == 0 {
+		log.Warn("will ignore UseFileGlobsOnly because no FileGlobs were specified")
 		opts.UseFileGlobsOnly = false
 	}
 

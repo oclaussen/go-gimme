@@ -1,11 +1,13 @@
 package configfiles
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type ConfigFile struct {
@@ -15,13 +17,13 @@ type ConfigFile struct {
 
 func GimmeConfigFiles(opts *Options) (*ConfigFile, error) {
 	if err := opts.normalize(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "invalid Options")
 	}
 
 	for _, pattern := range opts.FileGlobs {
 		matches, err := filepath.Glob(pattern)
 		if err != nil {
-			// TODO print warning
+			log.WithFields(log.Fields{"pattern": pattern}).Warn("invalid globbing pattern")
 			continue
 		}
 		for _, file := range matches {
@@ -46,7 +48,7 @@ func GimmeConfigFiles(opts *Options) (*ConfigFile, error) {
 		for _, pattern := range patterns {
 			matches, err := filepath.Glob(filepath.Join(directory, pattern))
 			if err != nil {
-				// TODO print warning
+				log.WithFields(log.Fields{"pattern": pattern}).Warn("invalid globbing pattern")
 				continue
 			}
 			for _, filename := range matches {
@@ -73,7 +75,7 @@ func filenameGlobs(name string, extensions []string) []string {
 		}
 	}
 
-	var candidates []string
+	candidates := make([]string, 6*len(extensions))
 	for _, ext := range extensions {
 		candidates = append(candidates, []string{
 			fmt.Sprintf("%s.%s", name, ext),
@@ -102,6 +104,8 @@ func tryConfigFile(path string) (*ConfigFile, bool) {
 	if result.Content, err = ioutil.ReadFile(path); err != nil {
 		return result, false
 	}
+
+	log.WithFields(log.Fields{"path": result.Path}).Debug("found potential config file")
 
 	return result, true
 }

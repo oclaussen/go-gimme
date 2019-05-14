@@ -3,13 +3,15 @@ package configfiles
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 )
 
 func GimmeConfigDirectories(opts *Options) ([]string, error) {
 	var configDirs []string
 
 	if err := opts.normalize(); err != nil {
-		return configDirs, err
+		return configDirs, errors.Wrap(err, "invalid Options")
 	}
 
 	if opts.IncludeWorkingDirectories {
