@@ -3,8 +3,10 @@ package ssl
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/pem"
 	"math/big"
 	"net"
 	"time"
@@ -87,12 +89,15 @@ func (certs *Certificates) createCA(opts *Options) error {
 	if err != nil {
 		return errors.Wrap(err, "could not generate RSA key pair")
 	}
-	certs.CAKey = x509.MarshalPKCS1PrivateKey(rsaKey)
 
-	certs.CA, err = x509.CreateCertificate(rand.Reader, template, template, &rsaKey.PublicKey, rsaKey)
+	caKey := x509.MarshalPKCS1PrivateKey(rsaKey)
+	certs.CAKey = pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: caKey})
+
+	caCert, err := x509.CreateCertificate(rand.Reader, template, template, &rsaKey.PublicKey, rsaKey)
 	if err != nil {
 		return errors.Wrap(err, "could not generate CA certificate")
 	}
+	certs.CA = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caCert})
 
 	return nil
 }
@@ -114,12 +119,12 @@ func (certs *Certificates) createServerCert(opts *Options) error {
 		}
 	}
 
-	caCert, err := x509.ParseCertificate(certs.CA)
+	keyPair, err := tls.X509KeyPair(certs.CA, certs.CAKey)
 	if err != nil {
 		return err
 	}
 
-	caKey, err := x509.ParsePKCS1PrivateKey(certs.CAKey)
+	caCert, err := x509.ParseCertificate(keyPair.Certificate[0])
 	if err != nil {
 		return err
 	}
@@ -128,12 +133,15 @@ func (certs *Certificates) createServerCert(opts *Options) error {
 	if err != nil {
 		return errors.Wrap(err, "could not generate RSA key pair")
 	}
-	certs.ServerKey = x509.MarshalPKCS1PrivateKey(rsaKey)
 
-	certs.ServerCert, err = x509.CreateCertificate(rand.Reader, template, caCert, &rsaKey.PublicKey, caKey)
+	serverKey := x509.MarshalPKCS1PrivateKey(rsaKey)
+	certs.ServerKey = pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: serverKey})
+
+	serverCert, err := x509.CreateCertificate(rand.Reader, template, caCert, &rsaKey.PublicKey, keyPair.PrivateKey)
 	if err != nil {
 		return errors.Wrap(err, "could not generate server certificate")
 	}
+	certs.ServerCert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: serverCert})
 
 	return nil
 }
@@ -149,12 +157,12 @@ func (certs *Certificates) createClientCert(opts *Options) error {
 	template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
 	template.KeyUsage = x509.KeyUsageDigitalSignature
 
-	caCert, err := x509.ParseCertificate(certs.CA)
+	keyPair, err := tls.X509KeyPair(certs.CA, certs.CAKey)
 	if err != nil {
 		return err
 	}
 
-	caKey, err := x509.ParsePKCS1PrivateKey(certs.CAKey)
+	caCert, err := x509.ParseCertificate(keyPair.Certificate[0])
 	if err != nil {
 		return err
 	}
@@ -163,12 +171,15 @@ func (certs *Certificates) createClientCert(opts *Options) error {
 	if err != nil {
 		return errors.Wrap(err, "could not generate RSA key pair")
 	}
-	certs.ClientKey = x509.MarshalPKCS1PrivateKey(rsaKey)
 
-	certs.ClientCert, err = x509.CreateCertificate(rand.Reader, template, caCert, &rsaKey.PublicKey, caKey)
+	clientKey := x509.MarshalPKCS1PrivateKey(rsaKey)
+	certs.ClientKey = pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: clientKey})
+
+	clientCert, err := x509.CreateCertificate(rand.Reader, template, caCert, &rsaKey.PublicKey, keyPair.PrivateKey)
 	if err != nil {
 		return errors.Wrap(err, "could not generate client certificate")
 	}
+	certs.ClientCert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: clientCert})
 
 	return nil
 }

@@ -1,7 +1,6 @@
 package ssl
 
 import (
-	"encoding/pem"
 	"os"
 	"path/filepath"
 
@@ -96,10 +95,8 @@ func writeCertificate(path string, content []byte) error {
 		return errors.Wrap(err, "could not write to file")
 	}
 	defer file.Close()
-	if err := pem.Encode(file, &pem.Block{Type: "CERTIFICATE", Bytes: content}); err != nil {
-		return err
-	}
-	return nil
+	_, err = file.Write(content)
+	return err
 }
 
 func writeKey(path string, content []byte) error {
@@ -108,8 +105,6 @@ func writeKey(path string, content []byte) error {
 		return errors.Wrap(err, "could not write to file")
 	}
 	defer file.Close()
-	if err := pem.Encode(file, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: content}); err != nil {
-		return err
-	}
-	return nil
+	_, err = file.Write(content)
+	return err
 }
