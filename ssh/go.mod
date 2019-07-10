@@ -1,4 +1,4 @@
-module github.com/oclaussen/go-gimme/ssl
+module github.com/oclaussen/go-gimme/ssh
 
 go 1.12
 
