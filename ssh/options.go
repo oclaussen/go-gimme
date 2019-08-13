@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"io"
 	"net"
 	"os"
 	"os/user"
@@ -8,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -24,6 +26,14 @@ type Options struct {
 	IdentityFileGlobs []string
 	MaxAuthTries      int
 	NonInteractive    bool
+}
+
+type FileOptions struct {
+	Path    string
+	Content string
+	Reader  io.Reader
+	Size    int64
+	Mode    os.FileMode
 }
 
 func (opts *Options) normalize() {
@@ -70,4 +80,22 @@ func (opts *Options) normalize() {
 	if !opts.NonInteractive {
 		opts.NonInteractive = !terminal.IsTerminal(int(os.Stdin.Fd()))
 	}
+}
+
+func (opts *FileOptions) normalize() error {
+	if len(opts.Path) == 0 {
+		return errors.New("target Path is required")
+	}
+	if len(opts.Content) == 0 && (opts.Reader == nil || opts.Size == 0) {
+		return errors.New("either Content or both Reader and Size are required")
+	}
+	if len(opts.Content) > 0 {
+		// TODO: warn if reader or size are specified
+		opts.Reader = strings.NewReader(opts.Content)
+		opts.Size = int64(len(opts.Content))
+	}
+	if opts.Mode == 0 {
+		opts.Mode = 0644
+	}
+	return nil
 }
