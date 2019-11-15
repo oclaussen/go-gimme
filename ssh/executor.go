@@ -3,6 +3,7 @@ package ssh
 import (
 	"fmt"
 	"io"
+	"os"
 	"path"
 	"sync"
 
@@ -12,6 +13,7 @@ import (
 
 type Executor struct {
 	client *ssh.Client
+	Stderr io.Writer
 }
 
 func GimmeExecutor(opts *Options) (*Executor, error) {
@@ -19,11 +21,24 @@ func GimmeExecutor(opts *Options) (*Executor, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Executor{client: client}, nil
+	return &Executor{client: client, Stderr: os.Stderr}, nil
 }
 
 func (executor *Executor) Close() error {
 	return executor.client.Close()
+}
+
+func (executor *Executor) forwardStderr(session *ssh.Session) {
+	reader, err := session.StderrPipe()
+
+	if err != nil {
+		fmt.Fprintf(executor.Stderr, "error: %v", err)
+		return
+	}
+	if _, err := io.Copy(executor.Stderr, reader); err != nil {
+		fmt.Fprintf(executor.Stderr, "error: %v", err)
+		return
+	}
 }
 
 func (executor *Executor) Execute(cmd string) (string, error) {
@@ -32,8 +47,9 @@ func (executor *Executor) Execute(cmd string) (string, error) {
 		return "", err
 	}
 	defer session.Close()
+	go executor.forwardStderr(session)
 
-	output, err := session.CombinedOutput(cmd)
+	output, err := session.Output(cmd)
 	return string(output), err
 }
 
@@ -43,6 +59,7 @@ func (executor *Executor) WriteFile(opts *FileOptions) error {
 		return err
 	}
 	defer session.Close()
+	go executor.forwardStderr(session)
 
 	errCh := make(chan error, 2)
 	wait := sync.WaitGroup{}

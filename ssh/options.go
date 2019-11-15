@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"bytes"
 	"io"
 	"net"
 	"os"
@@ -30,7 +31,7 @@ type Options struct {
 
 type FileOptions struct {
 	Path    string
-	Content string
+	Content []byte
 	Reader  io.Reader
 	Size    int64
 	Mode    os.FileMode
@@ -91,7 +92,7 @@ func (opts *FileOptions) normalize() error {
 	}
 	if len(opts.Content) > 0 {
 		// TODO: warn if reader or size are specified
-		opts.Reader = strings.NewReader(opts.Content)
+		opts.Reader = bytes.NewReader(opts.Content)
 		opts.Size = int64(len(opts.Content))
 	}
 	if opts.Mode == 0 {
