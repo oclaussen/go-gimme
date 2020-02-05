@@ -17,6 +17,7 @@ func getUserDirectories(name string) []string {
 	}
 	return []string{
 		user.HomeDir,
+		filepath.Join(user.HomeDir, "."+name),
 		filepath.Join(user.HomeDir, "Library", "Application Support"),
 	}
 }

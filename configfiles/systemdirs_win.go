@@ -5,6 +5,7 @@ package configfiles
 import (
 	"os"
 	"os/user"
+	"path/filepath"
 )
 
 const (
@@ -20,7 +21,10 @@ func getUserDirectories(name string) []string {
 	if user.HomeDir == "" {
 		return []string{}
 	}
-	return []string{user.HomeDir}
+	return []string{
+		user.HomeDir,
+		filepath.Join(user.HomeDir, "."+name),
+	}
 }
 
 func getSystemDirectories() []string {
